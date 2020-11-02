@@ -40,7 +40,7 @@ func printHelp() {
 }
 
 func printVersion() {
-	output.Println("multini ", Version)
+	output.Println("range-gen ", Version)
 }
 
 func init() {
