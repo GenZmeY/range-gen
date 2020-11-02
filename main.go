@@ -5,9 +5,14 @@ import (
 	"image"
 	"io/ioutil"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 
 	_ "image/png"
 
@@ -25,12 +30,14 @@ const (
 )
 
 var (
+	Version string = "dev"
+
 	hashes map[string]string
 	names  []string
 )
 
 func main() {
-	output.SetEndOfLineNative()
+	closeHandler() // Ctrl+C
 
 	if err := parseArgs(); err != nil {
 		output.Errorln(err)
@@ -49,19 +56,73 @@ func main() {
 		os.Exit(EXIT_DIR_READ_ERR)
 	}
 
+	if ArgJobs == 0 {
+		ArgJobs = runtime.NumCPU()
+	}
+	runtime.GOMAXPROCS(ArgJobs)
+
+	hashes, names := calcHashes(files)
+
+	ranges := calcRanges(hashes, names, Threshold)
+
+	writeRanges(ranges)
+
+	wg := new(sync.WaitGroup)
+
+	//wg.Add(1)
+
+	wg.Wait()
+
+	os.Exit(EXIT_SUCCESS)
+}
+
+func closeHandler() {
+	interrupt := make(chan os.Signal, 2)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-interrupt
+		output.Println("Closed by SIGINT")
+		os.Exit(EXIT_SUCCESS)
+	}()
+}
+
+func calcHashes(files []os.FileInfo) (map[string]string, []string) {
+	var hashes map[string]string
+	var keys []string
+	var err error
+
 	hashes = make(map[string]string)
+
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".png") {
-			names = append(names, file.Name())
-			hashes[file.Name()], err = calchash(ArgInput + file.Name())
+			keys = append(keys, file.Name())
+			hashes[file.Name()], err = calcHash(filepath.Join(ArgInput, file.Name()))
 
 			if err != nil {
 				output.Errorln(err)
 			}
 		}
 	}
-	sort.Strings(names)
+	sort.Strings(keys)
+	return hashes, keys
+}
 
+func calcHash(filepath string) (string, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	image, _, err := image.Decode(file)
+	if err != nil {
+		return "", err
+	}
+
+	return blockhash.NewBlockhash(image, 16).Hexdigest(), nil
+}
+
+func calcRanges(hashes map[string]string, names []string, Threshold int) string {
 	var ranges strings.Builder
 	var prevHash string = ""
 	var dist int = 0
@@ -86,12 +147,16 @@ func main() {
 	}
 	ranges.WriteString(startName + "\t" + names[len(names)-1] + rangeNoise + output.EOL())
 
+	return ranges.String()
+}
+
+func writeRanges(ranges string) {
 	mode := os.FileMode(int(0644))
 	targetFile, err := os.OpenFile(ArgOutput, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	defer targetFile.Close()
 	if err == nil {
 		datawriter := bufio.NewWriter(targetFile)
-		_, err = datawriter.WriteString(ranges.String())
+		_, err = datawriter.WriteString(ranges)
 		if err == nil {
 			err = datawriter.Flush()
 		}
@@ -101,23 +166,6 @@ func main() {
 		output.Errorln(err)
 		os.Exit(EXIT_FILE_WRITE_ERR)
 	}
-
-	os.Exit(EXIT_SUCCESS)
-}
-
-func calchash(filepath string) (string, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	image, _, err := image.Decode(file)
-	if err != nil {
-		return "", err
-	}
-
-	return blockhash.NewBlockhash(image, 16).Hexdigest(), nil
 }
 
 func hammingDistance(prev, cur string) int {

@@ -1,16 +1,19 @@
-NAME=range-gen
-VERSION=0.1.0
-GOCMD=go
-LDFLAGS:="$(LDFLAGS) -X 'main.Version=$(VERSION)'"
-GOBUILD=$(GOCMD) build -ldflags=$(LDFLAGS)
-SRCMAIN=.
-BINDIR=bin
-BIN=$(BINDIR)/$(NAME)
-PREFIX=/usr
+NAME     = range-gen
+VERSION  = dev_$(shell date +%F_%T)
+GOCMD    = go
+LDFLAGS := "$(LDFLAGS) -X 'main.Version=$(VERSION)'"
+GOBUILD  = $(GOCMD) build -ldflags=$(LDFLAGS)
+SRCMAIN  = .
+BINDIR   = bin
+BIN      = $(BINDIR)/$(NAME)
+PREFIX   = /usr
+
+.PHONY: all prep build check-build freebsd-386 darwin-386 linux-386 windows-386 freebsd-amd64 darwin-amd64 linux-amd64 windows-amd64 compile install check-install uninstall clean
 
 all: build
 
 prep: clean
+	go mod init; go mod tidy
 	mkdir $(BINDIR)
 	
 build: prep

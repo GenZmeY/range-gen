@@ -15,6 +15,10 @@ var (
 	stderr    *log.Logger = log.New(os.Stderr, "", 0)
 )
 
+func init() {
+	SetEndOfLineNative()
+}
+
 func SetQuiet(enabled bool) {
 	if enabled {
 		stdout = devNull
