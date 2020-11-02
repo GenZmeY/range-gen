@@ -167,7 +167,7 @@ func calcRanges(hashes map[string]string, Threshold int) string {
 	var rangeNoise string = ""
 
 	if ArgDefaultNoiseLevel >= 0 {
-		rangeNoise = "\t" + string(ArgDefaultNoiseLevel)
+		rangeNoise = "\t" + strconv.Itoa(ArgDefaultNoiseLevel)
 	}
 
 	names := []string{}
