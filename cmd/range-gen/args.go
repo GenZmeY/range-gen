@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/juju/gnuflag"
 
-	"range-gen/output"
+	"range-gen/internal/output"
 
 	"errors"
 	"os"

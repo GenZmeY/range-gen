@@ -1,0 +1,12 @@
+Сreates a list of scene ranges based on a set of frames from the video
+
+Usage: range-gen [option]... <input_dir> <output_file> <threshold>
+input_dir          Directory with png images
+output_file        Range list file
+threshold          Image similarity threshold (0-1024)
+
+Options:
+  -j, --jobs N     Allow N jobs at once
+  -n, --noise      Default noise level for each range
+  -h, --help       Show this page
+  -v, --version    Show version

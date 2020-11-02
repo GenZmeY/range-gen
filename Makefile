@@ -3,12 +3,14 @@ VERSION  = dev_$(shell date +%F_%T)
 GOCMD    = go
 LDFLAGS := "$(LDFLAGS) -X 'main.Version=$(VERSION)'"
 GOBUILD  = $(GOCMD) build -ldflags=$(LDFLAGS)
-SRCMAIN  = .
+SRCMAIN  = ./cmd/$(NAME)
 BINDIR   = bin
 BIN      = $(BINDIR)/$(NAME)
+README   = ./doc/README
+LICENSE  = LICENSE
 PREFIX   = /usr
 
-.PHONY: all prep build check-build freebsd-386 darwin-386 linux-386 windows-386 freebsd-amd64 darwin-amd64 linux-amd64 windows-amd64 compile install check-install uninstall clean
+.PHONY: all prep build doc check-build freebsd-386 darwin-386 linux-386 windows-386 freebsd-amd64 darwin-amd64 linux-amd64 windows-amd64 compile install check-install uninstall clean
 
 all: build
 
@@ -18,6 +20,10 @@ prep: clean
 	
 build: prep
 	$(GOBUILD) -o $(BIN) $(SRCMAIN)
+	
+doc: check-build
+	test -d ./doc || mkdir ./doc
+	$(BIN) --help > ./doc/README
 
 check-build:
 	test -e $(BIN)
@@ -48,15 +54,25 @@ windows-amd64: prep
 
 compile: freebsd-386 darwin-386 linux-386 windows-386 freebsd-amd64 darwin-amd64 linux-amd64 windows-amd64
 	
-install: check-build
-	install -m 755 -d         $(PREFIX)/bin/
-	install -m 755 $(BIN)     $(PREFIX)/bin/
+install: check-build doc
+	install -m 755 -d                                        $(PREFIX)/bin/
+	install -m 755 $(BIN)                                    $(PREFIX)/bin/
+	install -m 755 -d                                        $(PREFIX)/share/licenses/$(NAME)/
+	install -m 644 $(LICENSE)                                $(PREFIX)/share/licenses/$(NAME)/
+	install -m 755 -d                                        $(PREFIX)/share/licenses/$(NAME)/go-perceptualhash
+	install -m 644 ./third_party/go-perceptualhash/LICENSE   $(PREFIX)/share/licenses/$(NAME)/go-perceptualhash
+	install -m 755 -d                                        $(PREFIX)/share/doc/$(NAME)/
+	install -m 644 $(README)                                 $(PREFIX)/share/doc/$(NAME)/
 
 check-install:
-	test -e $(PREFIX)/bin/$(NAME)
+	test -e $(PREFIX)/bin/$(NAME) || \
+	test -d $(PREFIX)/share/licenses/$(NAME) || \
+	test -d $(PREFIX)/share/doc/$(NAME)
 
 uninstall: check-install
 	rm -f  $(PREFIX)/bin/$(NAME)
+	rm -rf $(PREFIX)/share/licenses/$(NAME)
+	rm -rf $(PREFIX)/share/doc/$(NAME)
 
 clean:
 	rm -rf $(BINDIR)
