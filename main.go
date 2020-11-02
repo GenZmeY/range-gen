@@ -31,9 +31,6 @@ const (
 
 var (
 	Version string = "dev"
-
-	hashes map[string]string
-	names  []string
 )
 
 func main() {
@@ -50,7 +47,7 @@ func main() {
 		os.Exit(EXIT_ARG_ERR)
 	}
 
-	files, err := ioutil.ReadDir(ArgInput)
+	allFiles, err := ioutil.ReadDir(ArgInput)
 	if err != nil {
 		output.Errorln("Read dir error")
 		os.Exit(EXIT_DIR_READ_ERR)
@@ -61,17 +58,10 @@ func main() {
 	}
 	runtime.GOMAXPROCS(ArgJobs)
 
-	hashes, names := calcHashes(files)
-
-	ranges := calcRanges(hashes, names, Threshold)
-
+	pngFiles := pngList(allFiles)
+	hashes := calcHashes(pngFiles)
+	ranges := calcRanges(hashes, Threshold)
 	writeRanges(ranges)
-
-	wg := new(sync.WaitGroup)
-
-	//wg.Add(1)
-
-	wg.Wait()
 
 	os.Exit(EXIT_SUCCESS)
 }
@@ -86,43 +76,54 @@ func closeHandler() {
 	}()
 }
 
-func calcHashes(files []os.FileInfo) (map[string]string, []string) {
+func pngList(files []os.FileInfo) []os.FileInfo {
+	var pngFiles []os.FileInfo
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(strings.ToLower(file.Name()), ".png") {
+			pngFiles = append(pngFiles, file)
+		}
+	}
+
+	return pngFiles
+}
+
+func calcHashes(files []os.FileInfo) map[string]string {
 	var hashes map[string]string
-	var keys []string
-	var err error
+	var mutex sync.Mutex
+
+	wg := new(sync.WaitGroup)
+	wg.Add(len(files))
 
 	hashes = make(map[string]string)
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".png") {
-			keys = append(keys, file.Name())
-			hashes[file.Name()], err = calcHash(filepath.Join(ArgInput, file.Name()))
-
-			if err != nil {
-				output.Errorln(err)
-			}
-		}
+		go calcHash(ArgInput, file, &hashes, &mutex, wg)
 	}
-	sort.Strings(keys)
-	return hashes, keys
+	wg.Wait()
+
+	return hashes
 }
 
-func calcHash(filepath string) (string, error) {
-	file, err := os.Open(filepath)
+func calcHash(path string, fileinfo os.FileInfo, hashes *map[string]string, mutex *sync.Mutex, wg *sync.WaitGroup) {
+	file, err := os.Open(filepath.Join(path, fileinfo.Name()))
 	if err != nil {
-		return "", err
+		output.Errorln(err)
 	}
 	defer file.Close()
 
 	image, _, err := image.Decode(file)
 	if err != nil {
-		return "", err
+		output.Errorln(err)
 	}
-
-	return blockhash.NewBlockhash(image, 16).Hexdigest(), nil
+	hash := blockhash.NewBlockhash(image, 16).Hexdigest()
+	mutex.Lock()
+	(*hashes)[fileinfo.Name()] = hash
+	mutex.Unlock()
+	wg.Done()
 }
 
-func calcRanges(hashes map[string]string, names []string, Threshold int) string {
+func calcRanges(hashes map[string]string, Threshold int) string {
 	var ranges strings.Builder
 	var prevHash string = ""
 	var dist int = 0
@@ -132,6 +133,12 @@ func calcRanges(hashes map[string]string, names []string, Threshold int) string 
 	if ArgDefaultNoiseLevel >= 0 {
 		rangeNoise = "\t" + string(ArgDefaultNoiseLevel)
 	}
+
+	names := []string{}
+	for key := range hashes {
+		names = append(names, key)
+	}
+	sort.Strings(names)
 
 	for i := 0; i < len(names); i++ {
 		name := names[i]
