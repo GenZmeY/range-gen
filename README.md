@@ -3,7 +3,7 @@
 ![build release](https://github.com/GenZmeY/range-gen/workflows/build%20release/badge.svg)
 [![GitHub top language](https://img.shields.io/github/languages/top/GenZmeY/range-gen)](https://golang.org)
 [![GitHub](https://img.shields.io/github/license/GenZmeY/range-gen)](https://www.gnu.org/licenses/gpl-3.0.en.html)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/GenZmeY/range-gen)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/GenZmeY/range-gen)](https://github.com/GenZmeY/range-gen/releases)
 
 *range-gen creates a list of scene ranges based on a set of frames from the video. This program is used in the [video2d-2x](https://github.com/GenZmeY/video2d-2x) project.*
 
