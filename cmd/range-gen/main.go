@@ -110,23 +110,38 @@ func pngList(files []os.FileInfo) []os.FileInfo {
 }
 
 func calcHashes(files []os.FileInfo) map[string]string {
-	var hashes map[string]string
-	var mutex sync.Mutex
+	var (
+		hashes          map[string]string = make(map[string]string)
+		jobChan         chan int          = make(chan int, ArgJobs)
+		mutex           sync.Mutex
+		activeJobs      int = 0
+		index           int = 0
+		complete        int = 0
+		size            int = len(files)
+		progress        int = 0
+		currentProgress int = 0
+	)
 
-	wg := new(sync.WaitGroup)
-	wg.Add(len(files))
-
-	hashes = make(map[string]string)
-
-	for _, file := range files {
-		go calcHash(ArgInput, file, &hashes, &mutex, wg)
+	for complete < size {
+		for activeJobs < ArgJobs && index < size {
+			go calcHash(ArgInput, files[index], &hashes, &mutex, jobChan)
+			activeJobs++
+			index++
+		}
+		<-jobChan
+		activeJobs--
+		complete++
+		currentProgress = complete * 100 / size
+		if currentProgress != progress {
+			output.Print("\r[" + strconv.Itoa(currentProgress) + "%] " + strconv.Itoa(complete) + "/" + strconv.Itoa(size))
+			progress = currentProgress
+		}
 	}
-	wg.Wait()
 
 	return hashes
 }
 
-func calcHash(path string, fileinfo os.FileInfo, hashes *map[string]string, mutex *sync.Mutex, wg *sync.WaitGroup) {
+func calcHash(path string, fileinfo os.FileInfo, hashes *map[string]string, mutex *sync.Mutex, jobChan chan int) {
 	file, err := os.Open(filepath.Join(path, fileinfo.Name()))
 	if err != nil {
 		output.Errorln(err)
@@ -141,7 +156,7 @@ func calcHash(path string, fileinfo os.FileInfo, hashes *map[string]string, mute
 	mutex.Lock()
 	(*hashes)[fileinfo.Name()] = hash
 	mutex.Unlock()
-	wg.Done()
+	jobChan <- 1
 }
 
 func calcRanges(hashes map[string]string, Threshold int) string {
