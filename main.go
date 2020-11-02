@@ -13,7 +13,7 @@ import (
 
 	"github.com/dsoprea/go-perceptualhash"
 
-	"range-generator/output"
+	"range-gen/output"
 )
 
 const (
