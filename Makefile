@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-NAME     = range-gen
+NAME     = $(shell basename $(shell readlink -e .))
 VERSION  = dev_$(shell date +%F_%T)
 GOCMD    = go
 LDFLAGS := "$(LDFLAGS) -X 'main.Version=$(VERSION)'"
