@@ -1,6 +1,6 @@
 # Range-Gen
 
-[![build release](https://github.com/GenZmeY/range-gen/workflows/build%20release/badge.svg)](https://github.com/GenZmeY/range-gen/actions)
+[![build](https://github.com/GenZmeY/range-gen/workflows/build/badge.svg)](https://github.com/GenZmeY/range-gen/actions)
 [![GitHub top language](https://img.shields.io/github/languages/top/GenZmeY/range-gen)](https://golang.org)
 [![GitHub](https://img.shields.io/github/license/genzmey/range-gen)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/GenZmeY/range-gen)](https://github.com/GenZmeY/range-gen/releases)
