@@ -23,9 +23,10 @@ GOCMD    = go
 LDFLAGS := "$(LDFLAGS) -X 'main.Version=$(VERSION)'"
 GOBUILD  = $(GOCMD) build -ldflags=$(LDFLAGS)
 SRCMAIN  = ./cmd/$(NAME)
+SRCDOC   = ./doc
 BINDIR   = bin
 BIN      = $(BINDIR)/$(NAME)
-README   = ./doc/README
+README   = $(SRCDOC)/README
 LICENSE  = LICENSE
 PREFIX   = /usr
 
@@ -41,8 +42,8 @@ build: prep
 	$(GOBUILD) -o $(BIN) $(SRCMAIN)
 	
 doc: check-build
-	test -d ./doc || mkdir ./doc
-	$(BIN) --help > ./doc/README
+	test -d $(SRCDOC) || mkdir $(SRCDOC)
+	$(BIN) --help > $(README)
 
 check-build:
 	test -e $(BIN)
